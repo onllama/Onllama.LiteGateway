@@ -13,7 +13,8 @@ namespace Onllama.LiteGateway
     {
         public static bool UseToken = false;
         public static List<string> TokensList = [];
-        public static string TargetApiUrl = "http://127.0.0.1:11434";
+        public static string TargetUrl = "http://127.0.0.1:11434";
+        public static string ListenUrl = "http://127.0.0.1:11435";
         public static List<string> ApiPathList =
             ["/api", "/v1"];
 
@@ -31,7 +32,8 @@ namespace Onllama.LiteGateway
                 })
                 .ConfigureKestrel(options =>
                 {
-                    options.ListenAnyIP(18080,
+                    var uri = new Uri(ListenUrl);
+                    options.Listen(new IPEndPoint(IPAddress.Parse(uri.Host), uri.Port == 0 ? 11435 : uri.Port),
                         listenOptions => listenOptions.Protocols = HttpProtocols.Http1AndHttp2);
                 })
                 .Configure(app =>
@@ -77,7 +79,7 @@ namespace Onllama.LiteGateway
                                 {
                                     Console.WriteLine(context.Request.PathBase+ context.Request.Path);
                                     response = await context
-                                        .ForwardTo(new Uri(TargetApiUrl + context.Request.PathBase)).Send();
+                                        .ForwardTo(new Uri(ListenUrl + context.Request.PathBase)).Send();
                                     response.Headers.Add("X-Forwarder-By", "MondrianGateway/Lite");
                                     return response;
                                 }
