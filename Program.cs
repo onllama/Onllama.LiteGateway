@@ -15,7 +15,7 @@ namespace Onllama.LiteGateway
         public static bool UseToken = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
-        public static string ListenUrl = "http://127.0.0.1:11435";
+        public static string ListenUrl = "http://127.0.0.1:22434";
         public static List<string> ApiPathList = ["/api", "/v1"];
 
         static void Main(string[] args)
