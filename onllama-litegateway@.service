@@ -1,0 +1,14 @@
+[Unit]
+Description=Onllama.LiteGateway
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/bin/Onllama.LiteGateway %i --target http://127.0.0.1:11434 --listen http://0.0.0.0:22434
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
