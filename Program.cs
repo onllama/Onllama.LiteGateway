@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,7 @@ namespace Onllama.LiteGateway
 {
     internal class Program
     {
+        public static string Hostname = string.Empty;
         public static bool UseToken = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
@@ -29,19 +31,34 @@ namespace Onllama.LiteGateway
                               $"Copyright (c) {DateTime.Now.Year} Milkey Tan. Code released under the MIT License"
             };
             cmd.HelpOption("-?|-h|--help|-he");
+            var keysArgument = cmd.Argument("keys",
+                isZh ? "设置要求传入的 API 密钥。" : "Setting up the API key", multipleValues: true);
+
             var ipOption = cmd.Option<string>("-l|--listen <IPEndPoint>",
                 isZh ? "监听的地址与端口。" : "Set server listening address and port",
                 CommandOptionType.SingleValue);
             var targetOption = cmd.Option<string>("-t|--target <Uri>",
                 isZh ? "目标地址与端口。" : "Set target address and port",
                 CommandOptionType.SingleValue);
-            var keysArgument = cmd.Argument("keys",
-                isZh ? "设置要求传入的 API 密钥。" : "Setting up the API key", multipleValues: true);
+
+            var httpsOption = cmd.Option("-s|--https",
+                isZh ? "启用 HTTPS。（默认自签名，不推荐）" : "Set enable HTTPS (Self-signed by default, not recommended)",
+                CommandOptionType.NoValue);
+            var pemOption = cmd.Option<string>("-pem|--pemfile <FilePath>",
+                isZh ? "PEM 证书路径。 <./cert.pem>" : "Set your pem certificate file path <./cert.pem>",
+                CommandOptionType.SingleOrNoValue);
+            var keyOption = cmd.Option<string>("-key|--keyfile <FilePath>",
+                isZh ? "PEM 证书密钥路径。 <./cert.key>" : "Set your pem certificate key file path <./cert.key>",
+                CommandOptionType.SingleOrNoValue);
+            var hostOption = cmd.Option<string>("-h|--host <Hostname>",
+                isZh ? "设置允许的主机名。（默认全部允许）" : "Set the allowed host names. (Allow all by default)",
+                CommandOptionType.SingleOrNoValue);
 
             cmd.OnExecute(() =>
             {
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
+                if (hostOption.HasValue()) Hostname = hostOption.Value();
                 if (keysArgument.Values.Count > 0)
                 {
                     UseToken = true;
@@ -67,12 +84,29 @@ namespace Onllama.LiteGateway
                     {
                         var uri = new Uri(ListenUrl);
                         options.Listen(new IPEndPoint(IPAddress.Parse(uri.Host), uri.Port == 0 ? 11435 : uri.Port),
-                            listenOptions => listenOptions.Protocols = HttpProtocols.Http1AndHttp2);
+                            listenOptions =>
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                                if (httpsOption.HasValue()) listenOptions.UseHttps();
+                                if (pemOption.HasValue() && keyOption.HasValue())
+                                    listenOptions.UseHttps(X509Certificate2.CreateFromPem(
+                                        File.ReadAllText(pemOption.Value()), File.ReadAllText(keyOption.Value())));
+                            });
                     })
                     .Configure(app =>
                     {
                         app.Use(async (context, next) =>
                         {
+                            if (!string.IsNullOrWhiteSpace(Hostname) &&
+                                !string.Equals(context.Request.Host.Host, Hostname,
+                                    StringComparison.CurrentCultureIgnoreCase))
+                            {
+                                context.Response.StatusCode = 404;
+                                context.Response.ContentType = "text/plain";
+                                await context.Response.WriteAsync("Host Not Found");
+                                return;
+                            }
+
                             var reqToken = context.Request.Headers.ContainsKey("Authorization")
                                 ? context.Request.Headers.Authorization.ToString().Split(' ').Last().ToString()
                                 : string.Empty;
