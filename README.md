@@ -14,10 +14,14 @@ systemctl enable onllama-litegateway@sk-just-for-example --now
 ```
 
 ## TODO
-- [ ] HTTPS
+- [x] HTTPS
+- [x] Host
 - [ ] Log
 - [ ] Rate Limit
 - [ ] Public URL
-- [ ] Trim <think/>
+- [ ] Trim `<think/>`
+- [ ] Override `num_ctx`
+- [ ] Input content security based on llama-guard
+- [ ] Auto context summary compress
 - [ ] Apikey from DB
 - [ ] ACME Auto HTTPS
