@@ -12,3 +12,11 @@ systemctl enable onllama-litegateway@sk-just-for-example --now
 # Please replace 'sk-just-for-example' with the apikey you want to set. / 请替换 'sk-just-for-example' 为你想要设置的 apikey。
 # curl http://127.0.0.1:22434
 ```
+
+## TODO
+- [ ] HTTPS
+- [ ] Log
+- [ ] Rate Limit
+- [ ] Public URL
+- [ ] Trim <think/>
+- [ ] Apikey from DB
