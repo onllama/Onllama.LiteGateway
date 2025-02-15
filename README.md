@@ -1,5 +1,5 @@
 # Onllama.LiteGateway 
-The easiest way to add Apikey authentication to Ollama is to prevent it from being abused by exposing it directly to the public network. 
+Prevent Ollama from being abused by exposing it directly to the public network. The easiest way to add Apikey authentication to Ollama.
 
 防止 Ollama 直接暴露在公网受到滥用，为 Ollama 添加 Apikey 鉴权的最简单方式。 
 
