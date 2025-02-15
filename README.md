@@ -20,3 +20,4 @@ systemctl enable onllama-litegateway@sk-just-for-example --now
 - [ ] Public URL
 - [ ] Trim <think/>
 - [ ] Apikey from DB
+- [ ] ACME Auto HTTPS
