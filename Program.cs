@@ -16,6 +16,7 @@ namespace Onllama.LiteGateway
         public static string Hostname = string.Empty;
         public static bool UseToken = true;
         public static bool UsePublicPath = true;
+        public static bool UseCorsAny = false;
         public static bool DisableModelManagePath = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
@@ -71,12 +72,17 @@ namespace Onllama.LiteGateway
             var usePublicPath = cmd.Option("--use-model-info-public-path",
                 isZh ? "允许无需 APIKEY 通过 API 查看模型信息。" : "Allows get model information via API without APIKEY",
                 CommandOptionType.NoValue);
+            var useCorsAny = cmd.Option("--use-cors-any",
+                isZh ? "允许跨域请求。" : "Allow cross-origin requests",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
                 if (noTokenOption.HasValue()) UseToken = false;
                 if (usePublicPath.HasValue()) UsePublicPath = true;
+                if (useCorsAny.HasValue()) UseCorsAny = true;
                 if (noDisableModelManageOption.HasValue()) DisableModelManagePath = false;
+
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
                 if (hostOption.HasValue()) Hostname = hostOption.Value();
@@ -118,6 +124,14 @@ namespace Onllama.LiteGateway
                     {
                         app.Use(async (context, next) =>
                         {
+                            if (UseCorsAny)
+                            {
+                                context.Response.Headers.TryAdd("Access-Control-Allow-Origin", "*");
+                                context.Response.Headers.TryAdd("Access-Control-Allow-Methods", "*");
+                                context.Response.Headers.TryAdd("Access-Control-Allow-Headers", "*");
+                                context.Response.Headers.TryAdd("Access-Control-Allow-Credentials", "*");
+                            }
+
                             if (!string.IsNullOrWhiteSpace(Hostname) &&
                                 !string.Equals(context.Request.Host.Host, Hostname,
                                     StringComparison.CurrentCultureIgnoreCase))
@@ -152,6 +166,7 @@ namespace Onllama.LiteGateway
 
                             if (UsePublicPath && PublicPathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
                             {
+                                context.Items["Token"] = "sk-public";
                                 await next.Invoke();
                                 return;
                             }
