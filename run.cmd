@@ -1,1 +1,1 @@
-﻿./Onllama.LiteGateway.exe sk-just-for-example --target http://127.0.0.1:11434 --listen http://0.0.0.0:22434
+Onllama.LiteGateway.exe sk-just-for-example --target http://127.0.0.1:11434 --listen http://0.0.0.0:22434
