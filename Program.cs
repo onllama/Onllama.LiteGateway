@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -17,6 +18,7 @@ namespace Onllama.LiteGateway
         public static bool UseToken = true;
         public static bool UsePublicPath = true;
         public static bool UseCorsAny = false;
+        public static bool UseLog = false;
         public static bool DisableModelManagePath = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
@@ -50,6 +52,9 @@ namespace Onllama.LiteGateway
                 isZh ? "目标地址与端口。" : "Set target address and port",
                 CommandOptionType.SingleValue);
 
+            var logOption = cmd.Option("--log",
+                isZh ? "启用详细日志记录。" : "Enable logging",
+                CommandOptionType.NoValue);
             var httpsOption = cmd.Option("-s|--https",
                 isZh ? "启用 HTTPS。（默认自签名，不推荐）" : "Set enable HTTPS (Self-signed by default, not recommended)",
                 CommandOptionType.NoValue);
@@ -142,8 +147,6 @@ namespace Onllama.LiteGateway
                                 return;
                             }
 
-                            Console.WriteLine(context.Request.Path.ToString().ToLower());
-
                             if (DisableModelManagePath && ModelManagePathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
                             {
                                 context.Response.Headers.ContentType = "application/json";
@@ -205,11 +208,23 @@ namespace Onllama.LiteGateway
                             {
                                 svr.RunProxy(async context =>
                                 {
-                                    var response = new HttpResponseMessage();
                                     try
                                     {
-                                        Console.WriteLine(context.Request.PathBase + context.Request.Path);
-                                        response = await context
+                                        Console.WriteLine(context.Connection.RemoteIpAddress + ":" +
+                                                          context.Request.Method.ToUpper() + ":" +
+                                                          context.Request.PathBase + context.Request.Path);
+
+                                        if (context.Request.Method.ToUpper() == "POST")
+                                        {
+                                            var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
+
+                                            if (UseLog && context.Request.Method.ToUpper() == "POST") Console.WriteLine(jBody.ToString());
+
+                                            context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
+                                            context.Request.ContentLength = context.Request.Body.Length;
+                                        }
+
+                                        var response = await context
                                             .ForwardTo(new Uri(TargetUrl + context.Request.PathBase)).Send();
                                         response.Headers.Add("X-Forwarder-By", "MondrianGateway/Lite");
                                         return response;
@@ -217,7 +232,8 @@ namespace Onllama.LiteGateway
                                     catch (Exception e)
                                     {
                                         Console.WriteLine(e);
-                                        return response;
+                                        return await context
+                                            .ForwardTo(new Uri(TargetUrl + context.Request.PathBase)).Send(); ;
                                     }
                                 });
                             });
