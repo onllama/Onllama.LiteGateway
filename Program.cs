@@ -87,6 +87,7 @@ namespace Onllama.LiteGateway
                 if (usePublicPath.HasValue()) UsePublicPath = true;
                 if (useCorsAny.HasValue()) UseCorsAny = true;
                 if (noDisableModelManageOption.HasValue()) DisableModelManagePath = false;
+                if (logOption.HasValue()) UseLog = true;
 
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
@@ -218,7 +219,7 @@ namespace Onllama.LiteGateway
                                         {
                                             var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
 
-                                            if (UseLog && context.Request.Method.ToUpper() == "POST") Console.WriteLine(jBody.ToString());
+                                            if (UseLog) Console.WriteLine(jBody.ToString());
 
                                             context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
                                             context.Request.ContentLength = context.Request.Body.Length;
