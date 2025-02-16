@@ -15,10 +15,18 @@ namespace Onllama.LiteGateway
     {
         public static string Hostname = string.Empty;
         public static bool UseToken = true;
+        public static bool UsePublicPath = true;
+        public static bool DisableModelManagePath = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
         public static string ListenUrl = "http://127.0.0.1:22434";
-        public static List<string> ApiPathList = ["/api", "/v1"];
+
+        public static List<string> ApiPathList = 
+            ["/api", "/v1"];
+        public static List<string> PublicPathList =
+            ["/api/tags", "/api/ps", "/api/show", "/v1/models"];
+        public static List<string> ModelManagePathList =
+            ["/api/pull", "/api/create", "/api/push", "/api/delete", "/api/copy"];
 
         static void Main(string[] args)
         {
@@ -54,8 +62,21 @@ namespace Onllama.LiteGateway
                 isZh ? "设置允许的主机名。（默认全部允许）" : "Set the allowed host names. (Allow all by default)",
                 CommandOptionType.SingleOrNoValue);
 
+            var noTokenOption = cmd.Option("--no-token",
+                isZh ? "禁用 API 密钥验证。" : "Disable API key verification",
+                CommandOptionType.NoValue);
+            var noDisableModelManageOption = cmd.Option("--no-disable-model-manage",
+                isZh ? "允许通过 API 进行模型管理。" : "Enable model management via API",
+                CommandOptionType.NoValue);
+            var usePublicPath = cmd.Option("--use-model-info-public-path",
+                isZh ? "允许无需 APIKEY 通过 API 查看模型信息。" : "Allows get model information via API without APIKEY",
+                CommandOptionType.NoValue);
+
             cmd.OnExecute(() =>
             {
+                if (noTokenOption.HasValue()) UseToken = false;
+                if (usePublicPath.HasValue()) UsePublicPath = true;
+                if (noDisableModelManageOption.HasValue()) DisableModelManagePath = false;
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
                 if (hostOption.HasValue()) Hostname = hostOption.Value();
@@ -104,6 +125,34 @@ namespace Onllama.LiteGateway
                                 context.Response.StatusCode = 404;
                                 context.Response.ContentType = "text/plain";
                                 await context.Response.WriteAsync("Host Not Found");
+                                return;
+                            }
+
+                            Console.WriteLine(context.Request.Path.ToString().ToLower());
+
+                            if (DisableModelManagePath && ModelManagePathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
+                            {
+                                context.Response.Headers.ContentType = "application/json";
+                                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                                await context.Response.WriteAsync(new JObject()
+                                {
+                                    {
+                                        "error", new JObject
+                                        {
+                                            {
+                                                "message",
+                                                "The model management API has been disabled, please use Ollama CLI."
+                                            },
+                                            {"type", "invalid_request_error"}
+                                        }
+                                    }
+                                }.ToString());
+                                return;
+                            }
+
+                            if (UsePublicPath && PublicPathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
+                            {
+                                await next.Invoke();
                                 return;
                             }
 
