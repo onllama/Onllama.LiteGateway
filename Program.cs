@@ -18,11 +18,11 @@ namespace Onllama.LiteGateway
     {
         public static string Hostname = string.Empty;
         public static bool UseToken = true;
-        public static bool UsePublicPath = true;
+        public static bool UsePublicPath = false;
         public static bool UseCorsAny = false;
         public static bool UseLog = false;
         public static bool UseRateLimiting = false;
-        public static bool DisableModelManagePath = true;
+        public static bool NoModelManagePath = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
         public static string ListenUrl = "http://127.0.0.1:22434";
@@ -75,7 +75,7 @@ namespace Onllama.LiteGateway
             var noTokenOption = cmd.Option("--no-token",
                 isZh ? "禁用 API 密钥验证。" : "Disable API key verification",
                 CommandOptionType.NoValue);
-            var noDisableModelManageOption = cmd.Option("--no-disable-model-manage",
+            var noDisableModelManageOption = cmd.Option("--use-model-manage",
                 isZh ? "允许通过 API 进行模型管理。" : "Enable model management via API",
                 CommandOptionType.NoValue);
             var usePublicPath = cmd.Option("--use-model-info-public-path",
@@ -93,7 +93,7 @@ namespace Onllama.LiteGateway
                 if (noTokenOption.HasValue()) UseToken = false;
                 if (usePublicPath.HasValue()) UsePublicPath = true;
                 if (useCorsAny.HasValue()) UseCorsAny = true;
-                if (noDisableModelManageOption.HasValue()) DisableModelManagePath = false;
+                if (noDisableModelManageOption.HasValue()) NoModelManagePath = false;
                 if (logOption.HasValue()) UseLog = true;
                 if (useRateLimit.HasValue()) UseRateLimiting = true;
 
@@ -171,7 +171,7 @@ namespace Onllama.LiteGateway
                                 return;
                             }
 
-                            if (DisableModelManagePath && ModelManagePathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
+                            if (NoModelManagePath && ModelManagePathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
                             {
                                 context.Response.Headers.ContentType = "application/json";
                                 context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
