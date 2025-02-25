@@ -37,6 +37,34 @@ namespace Onllama.LiteGateway
         static void Main(string[] args)
         {
             var isZh = Thread.CurrentThread.CurrentCulture.Name.Contains("zh");
+            try
+            {
+                if ((Environment.GetEnvironmentVariable("OLLAMA_HOST") ?? "").Contains("0.0.0.0"))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine(isZh
+                        ? "!!! Ollama 仍然暴露在公网，请移除 OLLAMA_HOST 环境变量。 !!!"
+                        : "!!! Ollama is still listening on Any, please remove the OLLAMA_HOST environment variable. !!!");
+                    Console.ResetColor();
+                    Console.WriteLine();
+                }
+
+                if (File.ReadAllText("/etc/systemd/system/ollama.service").Replace(" ", "")
+                    .Contains("OLLAMA_HOST=0.0.0.0"))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine(isZh
+                        ? "!!! Ollama 仍然暴露在公网，请移除 /etc/systemd/system/ollama.service 中的 OLLAMA_HOST 环境变量。 !!!"
+                        : "!!! Ollama is still listening on Any. Please remove the OLLAMA_HOST environment variable in /etc/systemd/system/ollama.service. !!!");
+                    Console.ResetColor();
+                    Console.WriteLine();
+                }
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+
             var cmd = new CommandLineApplication
             {
                 Name = "Onllama.LiteGateway",
@@ -70,7 +98,6 @@ namespace Onllama.LiteGateway
             var hostOption = cmd.Option<string>("-h|--host <Hostname>",
                 isZh ? "设置允许的主机名。（默认全部允许）" : "Set the allowed host names. (Allow all by default)",
                 CommandOptionType.SingleOrNoValue);
-
 
             var noTokenOption = cmd.Option("--no-token",
                 isZh ? "禁用 API 密钥验证。" : "Disable API key verification",
