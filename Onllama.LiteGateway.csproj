@@ -11,10 +11,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="ipratelimiting.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="LettuceEncrypt" Version="1.3.3" />
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
     <PackageReference Include="ProxyKit" Version="2.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="ipratelimiting.json" />
   </ItemGroup>
 
 

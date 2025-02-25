@@ -1,0 +1,20 @@
+{
+  "IpRateLimiting": {
+    "EnableEndpointRateLimiting": false,
+    "StackBlockedRequests": false,
+    "ClientIdHeader": "X-ClientId",
+    "HttpStatusCode": 429,
+    "GeneralRules": [
+      {
+        "Endpoint": "*",
+        "Period": "1s",
+        "Limit": 100
+      },
+      {
+        "Endpoint": "*",
+        "Period": "1h",
+        "Limit": 36000
+      }
+    ]
+  }
+}

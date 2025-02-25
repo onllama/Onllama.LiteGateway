@@ -1,11 +1,13 @@
 ﻿using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using AspNetCoreRateLimit;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using ProxyKit;
@@ -19,6 +21,7 @@ namespace Onllama.LiteGateway
         public static bool UsePublicPath = true;
         public static bool UseCorsAny = false;
         public static bool UseLog = false;
+        public static bool UseRateLimiting = false;
         public static bool DisableModelManagePath = true;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
@@ -68,6 +71,7 @@ namespace Onllama.LiteGateway
                 isZh ? "设置允许的主机名。（默认全部允许）" : "Set the allowed host names. (Allow all by default)",
                 CommandOptionType.SingleOrNoValue);
 
+
             var noTokenOption = cmd.Option("--no-token",
                 isZh ? "禁用 API 密钥验证。" : "Disable API key verification",
                 CommandOptionType.NoValue);
@@ -80,6 +84,9 @@ namespace Onllama.LiteGateway
             var useCorsAny = cmd.Option("--use-cors-any",
                 isZh ? "允许跨域请求。" : "Allow cross-origin requests",
                 CommandOptionType.NoValue);
+            var useRateLimit = cmd.Option("--use-rate-limit",
+                isZh ? "启用请求速率限制。(请在 ipratelimiting.json 中设置)" : "Enable request rate limiting (with ipratelimiting.json)",
+                CommandOptionType.NoValue);
 
             cmd.OnExecute(() =>
             {
@@ -88,6 +95,7 @@ namespace Onllama.LiteGateway
                 if (useCorsAny.HasValue()) UseCorsAny = true;
                 if (noDisableModelManageOption.HasValue()) DisableModelManagePath = false;
                 if (logOption.HasValue()) UseLog = true;
+                if (useRateLimit.HasValue()) UseRateLimiting = true;
 
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
@@ -103,6 +111,7 @@ namespace Onllama.LiteGateway
                     return;
                 }
 
+                var config = new ConfigurationBuilder().AddJsonFile("ipratelimiting.json").Build();
                 var host = new WebHostBuilder()
                     .UseKestrel()
                     .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
@@ -112,6 +121,19 @@ namespace Onllama.LiteGateway
                         services.AddProxy(httpClientBuilder =>
                             httpClientBuilder.ConfigureHttpClient(client =>
                                 client.Timeout = TimeSpan.FromMinutes(5)));
+
+                        try
+                        {
+                            if (!UseRateLimiting) return;
+                            services.AddMemoryCache();
+                            services.Configure<IpRateLimitOptions>(config.GetSection("IpRateLimiting"));
+                            services.AddInMemoryRateLimiting();
+                            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
                     })
                     .ConfigureKestrel(options =>
                     {
@@ -128,6 +150,7 @@ namespace Onllama.LiteGateway
                     })
                     .Configure(app =>
                     {
+                        if (UseRateLimiting) app.UseMiddleware<IpRateLimitMiddleware>().UseIpRateLimiting();
                         app.Use(async (context, next) =>
                         {
                             if (UseCorsAny)
