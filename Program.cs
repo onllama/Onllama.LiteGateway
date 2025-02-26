@@ -24,6 +24,7 @@ namespace Onllama.LiteGateway
         public static bool UseLog = false;
         public static bool UseRateLimiting = false;
         public static bool NoModelManagePath = true;
+        public static int NumCtx = 4096;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
         public static string ListenUrl = "http://127.0.0.1:22434";
@@ -118,6 +119,9 @@ namespace Onllama.LiteGateway
             var useRateLimit = cmd.Option("--use-rate-limit",
                 isZh ? "启用请求速率限制。(请在 ipratelimiting.json 中设置)" : "Enable request rate limiting (with ipratelimiting.json)",
                 CommandOptionType.NoValue);
+            var numCtxOption = cmd.Option<int>("--num-ctx <NumCtx>",
+                isZh ? "设置每次请求的上下文数量。" : "Set the number of contexts per request",
+                CommandOptionType.SingleOrNoValue);
 
             cmd.OnExecute(() =>
             {
@@ -132,6 +136,7 @@ namespace Onllama.LiteGateway
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
                 if (hostOption.HasValue()) Hostname = hostOption.Value();
+                if (numCtxOption.HasValue()) NumCtx = numCtxOption.ParsedValue;
                 if (keysArgument.Values.Count > 0)
                 {
                     UseToken = true;
@@ -274,7 +279,8 @@ namespace Onllama.LiteGateway
                                         {
                                             var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
 
-                                            if (UseLog) Console.WriteLine(jBody.ToString());
+                                            if (context.Request.Path == "/chat"  && context.Request.PathBase == "/api")
+                                                jBody["num_ctx"] = NumCtx;
 
                                             if (UseThinkTrim && jBody.TryGetValue("messages", out var msgs) &&
                                                 msgs is JArray messages)
@@ -285,7 +291,7 @@ namespace Onllama.LiteGateway
                                                 jBody["messages"] = messages;
                                             }
 
-                                            //if (UseThinkTrim && UseLog) Console.WriteLine(jBody.ToString());
+                                            if (UseLog) Console.WriteLine(jBody.ToString());
 
                                             context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
                                             context.Request.ContentLength = context.Request.Body.Length;
