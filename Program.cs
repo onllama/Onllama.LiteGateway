@@ -18,9 +18,10 @@ namespace Onllama.LiteGateway
     {
         public static string Hostname = string.Empty;
         public static bool UseToken = true;
+        public static bool UseThinkTrim = true;
         public static bool UsePublicPath = false;
         public static bool UseCorsAny = false;
-        public static bool UseLog = false;
+        public static bool UseLog = true;
         public static bool UseRateLimiting = false;
         public static bool NoModelManagePath = true;
         public static List<string> TokensList = [];
@@ -98,7 +99,10 @@ namespace Onllama.LiteGateway
             var hostOption = cmd.Option<string>("-h|--host <Hostname>",
                 isZh ? "设置允许的主机名。（默认全部允许）" : "Set the allowed host names. (Allow all by default)",
                 CommandOptionType.SingleOrNoValue);
-
+            
+            var noThinkTrimOption = cmd.Option("--no-think-trim",
+                isZh ? "禁用 ThinkTrim。" : "Disable ThinkTrim",
+                CommandOptionType.NoValue);
             var noTokenOption = cmd.Option("--no-token",
                 isZh ? "禁用 API 密钥验证。" : "Disable API key verification",
                 CommandOptionType.NoValue);
@@ -123,6 +127,7 @@ namespace Onllama.LiteGateway
                 if (noDisableModelManageOption.HasValue()) NoModelManagePath = false;
                 if (logOption.HasValue()) UseLog = true;
                 if (useRateLimit.HasValue()) UseRateLimiting = true;
+                if (noThinkTrimOption.HasValue()) UseThinkTrim = false;
 
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
@@ -270,6 +275,17 @@ namespace Onllama.LiteGateway
                                             var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
 
                                             if (UseLog) Console.WriteLine(jBody.ToString());
+
+                                            if (UseThinkTrim && jBody.TryGetValue("messages", out var msgs) &&
+                                                msgs is JArray messages)
+                                            {
+                                                foreach (var item in messages)
+                                                    item["content"] = item["content"]
+                                                        ?.ToString().Split("</think>").LastOrDefault()?.Trim();
+                                                jBody["messages"] = messages;
+                                            }
+
+                                            if (UseThinkTrim && UseLog) Console.WriteLine(jBody.ToString());
 
                                             context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
                                             context.Request.ContentLength = context.Request.Body.Length;
