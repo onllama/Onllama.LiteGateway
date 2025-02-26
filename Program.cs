@@ -24,7 +24,7 @@ namespace Onllama.LiteGateway
         public static bool UseLog = false;
         public static bool UseRateLimiting = false;
         public static bool NoModelManagePath = true;
-        public static int NumCtx = 4096;
+        public static int NumCtx = -1;
         public static List<string> TokensList = [];
         public static string TargetUrl = "http://127.0.0.1:11434";
         public static string ListenUrl = "http://127.0.0.1:22434";
@@ -279,7 +279,8 @@ namespace Onllama.LiteGateway
                                         {
                                             var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
 
-                                            if (context.Request.Path == "/chat"  && context.Request.PathBase == "/api")
+                                            if (NumCtx != -1 && context.Request.Path == "/chat" &&
+                                                context.Request.PathBase == "/api")
                                                 jBody["num_ctx"] = NumCtx;
 
                                             if (UseThinkTrim && jBody.TryGetValue("messages", out var msgs) &&
