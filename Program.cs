@@ -21,7 +21,7 @@ namespace Onllama.LiteGateway
         public static bool UseThinkTrim = true;
         public static bool UsePublicPath = false;
         public static bool UseCorsAny = false;
-        public static bool UseLog = true;
+        public static bool UseLog = false;
         public static bool UseRateLimiting = false;
         public static bool NoModelManagePath = true;
         public static List<string> TokensList = [];
@@ -285,7 +285,7 @@ namespace Onllama.LiteGateway
                                                 jBody["messages"] = messages;
                                             }
 
-                                            if (UseThinkTrim && UseLog) Console.WriteLine(jBody.ToString());
+                                            //if (UseThinkTrim && UseLog) Console.WriteLine(jBody.ToString());
 
                                             context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
                                             context.Request.ContentLength = context.Request.Body.Length;
