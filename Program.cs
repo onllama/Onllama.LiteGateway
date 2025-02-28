@@ -29,6 +29,11 @@ namespace Onllama.LiteGateway
         public static string TargetUrl = "http://127.0.0.1:11434";
         public static string ListenUrl = "http://127.0.0.1:22434";
 
+        public static bool UseInputSecurity = false;
+        public static string RiskModel = "shieldgemma:2b";
+        public static string RiskModelPrompt = string.Empty;
+        public static List<string> RiskKeywordsList = ["YES", "UNSAFE"];
+
         public static List<string> ApiPathList = 
             ["/api", "/v1"];
         public static List<string> PublicPathList =
@@ -122,6 +127,18 @@ namespace Onllama.LiteGateway
             var numCtxOption = cmd.Option<int>("--num-ctx <NumCtx>",
                 isZh ? "设置每次请求的上下文数量。" : "Set the number of contexts per request",
                 CommandOptionType.SingleOrNoValue);
+            var useInputSecurityOption = cmd.Option("--use-input-security",
+                isZh ? "启用输入内容安全检查。" : "Enable input security",
+                CommandOptionType.NoValue);
+            var riskModelOption = cmd.Option("--risk-model <RiskModel>",
+                isZh ? "设置风险识别模型。" : "Set the input security risk model",
+                CommandOptionType.SingleOrNoValue);
+            var riskModelPromptOption = cmd.Option("--risk-model-prompt <RiskModelPrompt>",
+                isZh ? "设置风险识别模型提示词。" : "Set the input security risk model prompt",
+                CommandOptionType.SingleOrNoValue);
+            var riskKeywordsOption = cmd.Option("--risk-keywords <RiskKeywords>",
+                isZh ? "设置风险识别模型风险关键词。" : "Set the input security risk model keywords",
+                CommandOptionType.MultipleValue);
 
             cmd.OnExecute(() =>
             {
@@ -132,6 +149,12 @@ namespace Onllama.LiteGateway
                 if (logOption.HasValue()) UseLog = true;
                 if (useRateLimit.HasValue()) UseRateLimiting = true;
                 if (noThinkTrimOption.HasValue()) UseThinkTrim = false;
+                if (useInputSecurityOption.HasValue()) UseInputSecurity = true;
+
+                if (riskModelOption.HasValue()) RiskModel = riskModelOption.Value();
+                if (riskModelPromptOption.HasValue()) RiskModelPrompt = riskModelPromptOption.Value();
+                if (riskKeywordsOption.Values.Count > 0)
+                    RiskKeywordsList.AddRange(riskKeywordsOption.Values.ToList().Select(x => x.ToUpper()));
 
                 if (ipOption.HasValue()) ListenUrl = ipOption.Value();
                 if (targetOption.HasValue()) TargetUrl = targetOption.Value();
