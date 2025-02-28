@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
+using OllamaSharp.Models.Chat;
+using OllamaSharp;
 using ProxyKit;
 
 namespace Onllama.LiteGateway
@@ -306,16 +308,61 @@ namespace Onllama.LiteGateway
                                                 context.Request.PathBase == "/api")
                                                 jBody["num_ctx"] = NumCtx;
 
-                                            if (UseThinkTrim && jBody.TryGetValue("messages", out var msgs) &&
+                                            if (jBody.TryGetValue("messages", out var msgs) &&
                                                 msgs is JArray messages)
                                             {
-                                                foreach (var item in messages)
-                                                    item["content"] = item["content"]
-                                                        ?.ToString().Split("</think>").LastOrDefault()?.Trim();
-                                                jBody["messages"] = messages;
-                                            }
+                                                if (UseThinkTrim)
+                                                {
+                                                    foreach (var item in messages)
+                                                        item["content"] = item["content"]
+                                                            ?.ToString().Split("</think>").LastOrDefault()?.Trim();
+                                                    jBody["messages"] = messages;
+                                                }
 
-                                            if (UseLog) Console.WriteLine(jBody.ToString());
+                                                if (UseLog) Console.WriteLine(jBody.ToString());
+
+                                                if (UseInputSecurity)
+                                                {
+                                                    await foreach (var res in new OllamaApiClient(TargetUrl).ChatAsync(
+                                                                       new ChatRequest
+                                                                       {
+                                                                           Model = RiskModel,
+                                                                           Messages = msgs.Select(x =>
+                                                                               new Message(x["role"].ToString(),
+                                                                                   x["content"].ToString())),
+                                                                           Stream = false
+                                                                       }))
+                                                    {
+                                                        var risk = res?.Message.Content;
+                                                        Console.WriteLine(risk);
+                                                        if (risk != null &&
+                                                            RiskKeywordsList.Any(x =>
+                                                                risk.ToUpper().Contains(x.ToUpper())))
+                                                        {
+                                                            return new HttpResponseMessage(HttpStatusCode
+                                                                .UnavailableForLegalReasons)
+                                                            {
+                                                                Content = new StringContent(new JObject
+                                                                {
+                                                                    {
+                                                                        "error",
+                                                                        new JObject
+                                                                        {
+                                                                            {
+                                                                                "message",
+                                                                                "Messages with content security risks. Unable to continue."
+                                                                            },
+                                                                            {"type", "content_risks"},
+                                                                            {"risk_model", res?.Model},
+                                                                            {"risk_raw_msg", res?.Message.Content}
+                                                                        }
+                                                                    }
+                                                                }.ToString())
+                                                            };
+                                                        }
+                                                    }
+                                                }
+                                            }
 
                                             context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(jBody.ToString()));
                                             context.Request.ContentLength = context.Request.Body.Length;
