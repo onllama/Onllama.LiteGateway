@@ -21,8 +21,8 @@ systemctl enable onllama-litegateway@sk-just-for-example --now
 - [x] Rate Limit
 - [x] Public URL
 - [x] Trim `<think/>`
-- [ ] Override `num_ctx`
-- [ ] Input content security based on llama-guard
+- [x] Override `num_ctx`
+- [x] Input content security based on llamaguard/shieldgemma
 - [ ] Auto context summary compress
 - [ ] Apikey from DB
 - [ ] ACME Auto HTTPS
