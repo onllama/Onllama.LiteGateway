@@ -13,6 +13,37 @@ systemctl enable onllama-litegateway@sk-just-for-example --now
 # curl http://127.0.0.1:22434
 ```
 
+```
+Onllama.LiteGateway - The simplest Ollama authentication way.
+Copyright (c) 2025 Milkey Tan. Code released under the MIT License
+
+Usage: Onllama.LiteGateway [options] <keys>
+
+Arguments:
+  keys                                     Setting up the API key
+
+Options:
+  -?|-he|--help                            Show help information.
+  -l|--listen <IPEndPoint>                 Set server listening address and port
+  -t|--target <Uri>                        Set target address and port
+  --log                                    Enable logging
+  -s|--https                               Set enable HTTPS (Self-signed by default, not recommended)
+  -pem|--pemfile[:<FilePath>]              Set your pem certificate file path <./cert.pem>
+  -key|--keyfile[:<FilePath>]              Set your pem certificate key file path <./cert.key>
+  -h|--host[:<Hostname>]                   Set the allowed host names. (Allow all by default)
+  --no-think-trim                          Disable ThinkTrim
+  --no-token                               Disable API key verification
+  --use-model-manage                       Enable model management via API
+  --use-model-info-public-path             Allows get model information via API without APIKEY
+  --use-cors-any                           Allow cross-origin requests
+  --use-rate-limit                         Enable request rate limiting (with ipratelimiting.json)
+  --num-ctx[:<NumCtx>]                     Set the number of contexts per request
+  --use-input-security                     Enable input security
+  --risk-model[:<RiskModel>]               Set the input security risk model
+  --risk-model-prompt[:<RiskModelPrompt>]  Set the input security risk model prompt
+  --risk-keywords <RiskKeywords>           Set the input security risk model keywords
+```
+
 ## TODO
 - [x] HTTPS
 - [x] Host
