@@ -304,6 +304,8 @@ namespace Onllama.LiteGateway
                                         {
                                             var jBody = JObject.Parse(await new StreamReader(context.Request.Body).ReadToEndAsync());
 
+                                            if (jBody.ContainsKey("keep_alive")) jBody.Remove("keep_alive");
+
                                             if (NumCtx != -1 && context.Request.Path == "/chat" &&
                                                 context.Request.PathBase == "/api")
                                                 jBody["num_ctx"] = NumCtx;
