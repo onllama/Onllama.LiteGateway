@@ -40,8 +40,9 @@ namespace Onllama.LiteGateway
             ["/api", "/v1"];
         public static List<string> PublicPathList =
             ["/api/tags", "/api/ps", "/api/show", "/v1/models"];
+
         public static List<string> ModelManagePathList =
-            ["/api/pull", "/api/create", "/api/push", "/api/delete", "/api/copy"];
+            ["/api/pull", "/api/create", "/api/push", "/api/delete", "/api/copy", "/api/version"];
 
         static void Main(string[] args)
         {
@@ -164,7 +165,6 @@ namespace Onllama.LiteGateway
                 if (numCtxOption.HasValue()) NumCtx = numCtxOption.ParsedValue;
                 if (keysArgument.Values.Count > 0)
                 {
-                    UseToken = true;
                     TokensList = keysArgument.Values.ToList();
                 }
                 else
@@ -172,8 +172,7 @@ namespace Onllama.LiteGateway
                     cmd.ShowHelp();
                     return;
                 }
-
-                var config = new ConfigurationBuilder().AddJsonFile("ipratelimiting.json").Build();
+                
                 var host = new WebHostBuilder()
                     .UseKestrel()
                     .UseContentRoot(AppDomain.CurrentDomain.SetupInformation.ApplicationBase)
@@ -188,7 +187,8 @@ namespace Onllama.LiteGateway
                         {
                             if (!UseRateLimiting) return;
                             services.AddMemoryCache();
-                            services.Configure<IpRateLimitOptions>(config.GetSection("IpRateLimiting"));
+                            services.Configure<IpRateLimitOptions>(new ConfigurationBuilder()
+                                .AddJsonFile("ipratelimiting.json").Build().GetSection("IpRateLimiting"));
                             services.AddInMemoryRateLimiting();
                             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
                         }
@@ -253,7 +253,7 @@ namespace Onllama.LiteGateway
                                 return;
                             }
 
-                            if (UsePublicPath && PublicPathList.Contains(context.Request.Path.ToString().ToLower().Trim()))
+                            if (!UseToken && (UsePublicPath && PublicPathList.Contains(context.Request.Path.ToString().ToLower().Trim())))
                             {
                                 context.Items["Token"] = "sk-public";
                                 await next.Invoke();
