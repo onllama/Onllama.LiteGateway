@@ -13,6 +13,7 @@ using Newtonsoft.Json.Linq;
 using OllamaSharp.Models.Chat;
 using OllamaSharp;
 using ProxyKit;
+using Arashi;
 
 namespace Onllama.LiteGateway
 {
@@ -213,6 +214,13 @@ namespace Onllama.LiteGateway
                     .Configure(app =>
                     {
                         if (UseRateLimiting) app.UseMiddleware<IpRateLimitMiddleware>().UseIpRateLimiting();
+
+                        app.Use(async (context, next) =>
+                        {
+                            context.Connection.RemoteIpAddress = RealIP.Get(context);
+                            await next(context);
+                        });
+
                         app.Use(async (context, next) =>
                         {
                             if (UseCorsAny)
