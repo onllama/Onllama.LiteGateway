@@ -333,26 +333,25 @@ namespace Onllama.LiteGateway
 
                                                 if (UseInputSecurity)
                                                 {
-                                                    await foreach (var res in new OllamaApiClient(TargetUrl).ChatAsync(
-                                                                       new ChatRequest
-                                                                       {
-                                                                           Model = RiskModel,
-                                                                           Messages = msgs.Select(x =>
-                                                                               new Message(x["role"].ToString(),
-                                                                                   x["content"].ToString())),
-                                                                           Stream = false
-                                                                       }))
-                                                    {
-                                                        var risk = res?.Message.Content;
-                                                        Console.WriteLine(risk);
-                                                        if (risk != null &&
-                                                            RiskKeywordsList.Any(x =>
-                                                                risk.ToUpper().Contains(x.ToUpper())))
+                                                    var res = await new OllamaApiClient(TargetUrl).ChatAsync(
+                                                        new ChatRequest
                                                         {
-                                                            return new HttpResponseMessage(HttpStatusCode
-                                                                .UnavailableForLegalReasons)
-                                                            {
-                                                                Content = new StringContent(new JObject
+                                                            Model = RiskModel,
+                                                            Messages = msgs.Select(x =>
+                                                                new Message(x["role"].ToString(),
+                                                                    x["content"].ToString())),
+                                                            Stream = false
+                                                        }).StreamToEndAsync();
+                                                    var risk = res.Message.Content;
+                                                    Console.WriteLine(risk);
+                                                    if (risk != null &&
+                                                        RiskKeywordsList.Any(x =>
+                                                            risk.ToUpper().Contains(x.ToUpper())))
+                                                    {
+                                                        return new HttpResponseMessage(HttpStatusCode
+                                                            .UnavailableForLegalReasons)
+                                                        {
+                                                            Content = new StringContent(new JObject
                                                                 {
                                                                     {
                                                                         "error",
@@ -368,8 +367,7 @@ namespace Onllama.LiteGateway
                                                                         }
                                                                     }
                                                                 }.ToString())
-                                                            };
-                                                        }
+                                                        };
                                                     }
                                                 }
                                             }
