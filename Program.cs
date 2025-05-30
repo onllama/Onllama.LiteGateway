@@ -323,9 +323,13 @@ namespace Onllama.LiteGateway
                                             {
                                                 if (UseThinkTrim)
                                                 {
-                                                    foreach (var item in messages)
+                                                    foreach (JObject item in messages)
+                                                    {
+                                                        if (item.ContainsKey("thinking")) item.Remove("thinking");
                                                         item["content"] = item["content"]
                                                             ?.ToString().Split("</think>").LastOrDefault()?.Trim();
+                                                    }
+
                                                     jBody["messages"] = messages;
                                                 }
 
